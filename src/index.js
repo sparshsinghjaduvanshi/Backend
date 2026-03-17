@@ -23,6 +23,7 @@ connectDB()
     console.log("MONGO db connection failed !!! ", err)
 })
 
+console.log("server is goog")
 
 /* FIRST APPROACH
 import express from "express"
