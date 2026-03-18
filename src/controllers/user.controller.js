@@ -21,7 +21,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
     // //1. get user details from frontend
     const { fullName, email, userName, password } = req.body //if data is coming from form or json
-    console.log("email", email, fullName)
+    // console.log("email", email, fullName)
 
 
     // //2. validation and authentication
@@ -40,7 +40,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
     // //3. check if user is already exists. : through username or email
 
-    const existedUser = User.findOne({
+    const existedUser = await User.findOne({
         $or: [{ email }, { userName }]
     })
 
@@ -51,7 +51,20 @@ const registerUser = asyncHandler(async (req, res) => {
     // //4. check for images, check for avatar
 
     const avatarlLocalPath = req.files?.avatar[0]?.path
-    const coverImageLocalPath = req.files?.coverImage[0].path
+    // const coverImageLocalPath = req.files?.coverImage[0]?.path  //because there is a ? if we do not send the coverImage the error will be shown as cannot read propertyof undefined
+
+    //to resolve this
+    let coverImageLocalPath;
+    if (req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0) {
+        console.log("this is the cover image",req.files.coverImage)
+        console.log("this is the cover image path",req.files.coverImage.path)
+        coverImageLocalPath = req.files.coverImage[0].path
+    }else{
+        console.log("CoverImage does not exists")
+    }
+
+    console.log("FILES:", req.files)
+    console.log("Avatar path:", avatarlLocalPath)
 
     if (!avatarlLocalPath) {
         throw new ApiError(400, "Avatar file is required.")
@@ -62,7 +75,7 @@ const registerUser = asyncHandler(async (req, res) => {
     const coverImage = await uploadOnCloudinary(coverImageLocalPath)
 
     if (!avatar) {
-        throw new ApiError(400, "Avatar file is required.")
+        throw new ApiError(400, "Avatar file is required and it is missing.")
     }
 
     // //6. create user object - create entry in db
@@ -75,8 +88,11 @@ const registerUser = asyncHandler(async (req, res) => {
         userName: userName.toLowerCase()
 
     })
-    const createdUser = await user.findById(user._id).select("-password -refreshToken")
-    if(!createdUser){
+
+    //this line responsible for selecting the data that i don't want to be shown in my database
+    const createdUser = await User.findById(user._id).select("-password -refreshToken")
+
+    if (!createdUser) {
         throw new ApiError(500, "something went wron while registring a user")
     }
 
